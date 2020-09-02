@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:qr_scanner/constants/colors.dart';
-import 'package:qr_scanner/functions/database.dart';
 import 'package:qr_scanner/functions/showAlert.dart';
 import 'package:qr_scanner/widgets/customText.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:hive/hive.dart';
 
 class HistoryScreen extends StatefulWidget {
   @override
@@ -11,14 +11,55 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
-  List<String> linkList;
+  List<Widget> tileList = [];
 
-  Future<List<String>> listLinks() async {
-    List<String> response = await getLinkList(key: 'links');
+  Future listLinks() async {
+    var response = await Hive.openBox('searchedLinks');
+    List<Widget> widgetList = [];
 
-    linkList = response;
+    response.toMap().forEach((key, value) {
+      widgetList.add(
+        Container(
+          margin: EdgeInsets.only(bottom: 10),
+            decoration: BoxDecoration(
+                color: cardColor,
+                borderRadius: BorderRadius.circular(8)
+            ),
+            child: ListTile(
+              leading: Icon(Icons.search, color: initialColor, size: 40),
+              title: CustomText(
+                text: value['link'],
+                weight: FontWeight.bold,
+                color: initialColor,
+              ),
+              subtitle: CustomText(
+                text: value['time'],
+                color: initialColor,
+                size: 12,
+              ),
+              onTap: () async {
+                if(await canLaunch(value['link'])){
+                  await launch(value['link']);
+                }else{
+                  showAlert(context);
+                }
+              },
+            ),
+          ),
+      );
+    });
 
-    return response;
+    tileList = widgetList;
+
+    return response.toMap();
+  }
+
+  void removeAll() async {
+    var response = await Hive.openBox('searchedLinks');
+
+    response.toMap().forEach((key, value) {
+      response.delete(key);
+    });
   }
 
   @override
@@ -46,32 +87,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
           future: listLinks(),
           builder: (context, snapshot){
             if(snapshot.hasData){
-              if(linkList.length != 0){
-                return ListView.separated(
-                  itemCount: linkList.length,
-                  separatorBuilder: (context, index) => SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    return Container(
-                      decoration: BoxDecoration(
-                          color: cardColor,
-                          borderRadius: BorderRadius.circular(8)
-                      ),
-                      child: ListTile(
-                        leading: Icon(Icons.search, color: initialColor, size: 40),
-                        title: CustomText(
-                          text: linkList[index],
-                          color: initialColor,
-                        ),
-                        onTap: () async {
-                          if(await canLaunch(linkList[index])){
-                            await launch(linkList[index]);
-                          }else{
-                            showAlert(context);
-                          }
-                        },
-                      ),
-                    );
-                  },
+              if(tileList.length != 0){
+                return ListView(
+                  children: tileList,
                 );
               }else{
                 return Center(

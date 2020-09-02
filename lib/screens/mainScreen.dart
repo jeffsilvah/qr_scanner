@@ -1,13 +1,18 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_scanner/constants/colors.dart';
-import 'package:qr_scanner/functions/database.dart';
 import 'package:qr_scanner/functions/navigate.dart';
 import 'package:qr_scanner/functions/showAlert.dart';
+import 'package:qr_scanner/functions/storeLink.dart';
+import 'package:qr_scanner/screens/generateCodeScreen.dart';
 import 'package:qr_scanner/screens/historyScreen.dart';
+import 'package:qr_scanner/screens/readImageScreen.dart';
 import 'package:qr_scanner/widgets/customText.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:qrscan/qrscan.dart' as scanner;
 import 'package:url_launcher/url_launcher.dart';
+import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 class MainScreen extends StatefulWidget {
   @override
@@ -16,7 +21,6 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   String result;
-  List<String> links = [];
 
   void scanResult() async {
     result = await scanner.scan();
@@ -29,28 +33,15 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  void storeLink({result}) async {
-    getLinkList(key: 'links').then((value) {
-      if(value != null){
-        links = value;
-        links.add(result);
-
-        setLinkList(value: links);
-      }
-    });
+  void initHive() async {
+    await Hive.initFlutter();
   }
 
   @override
   void initState(){
     super.initState();
 
-    getLinkList(key: 'links').then((value) {
-      if(value != null){
-        links = value;
-      }else{
-        links = [];
-      }
-    });
+    initHive();
   }
 
   @override
@@ -69,7 +60,7 @@ class _MainScreenState extends State<MainScreen> {
               backgroundColor: initialColor,
               label: 'Gerar código',
               labelStyle: TextStyle(fontSize: 18.0, color: initialColor),
-              onTap: () => print('Generate code')
+              onTap: () => navigate(context, route: GenerateCodeScreen())
           ),
           SpeedDialChild(
               child: Icon(
@@ -79,7 +70,7 @@ class _MainScreenState extends State<MainScreen> {
               backgroundColor: initialColor,
               label: 'Ler QR Code (Imagem)',
               labelStyle: TextStyle(fontSize: 18.0, color: initialColor),
-              onTap: () => print('Read image')
+              onTap: () => navigate(context, route: ReadImageScreen())
           ),
           SpeedDialChild(
               child: Icon(
@@ -106,7 +97,7 @@ class _MainScreenState extends State<MainScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             CustomText(
-              text: 'Scan QR code',
+              text: 'QR Scanner',
               align: TextAlign.center,
               weight: FontWeight.bold,
               size: 24,
